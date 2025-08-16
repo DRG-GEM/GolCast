@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/miniPlayerRoot"
+    android:visibility="gone"
+    android:orientation="horizontal"
+    android:padding="10dp"
+    android:background="#1F2937"
+    android:layout_width="match_parent"
+    android:layout_height="72dp">
+
+    <ImageView
+        android:id="@+id/miniArt"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:scaleType="centerCrop"
+        android:background="#111827"/>
+
+    <LinearLayout
+        android:layout_marginStart="10dp"
+        android:orientation="vertical"
+        android:gravity="center_vertical"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="match_parent">
+        <TextView
+            android:id="@+id/miniTitle"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+        <TextView
+            android:id="@+id/miniSubtitle"
+            android:textColor="#9CA3AF"
+            android:textSize="11sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+        <ProgressBar
+            style="?android:attr/progressBarStyleHorizontal"
+            android:id="@+id/miniProgress"
+            android:progress="0"
+            android:max="1000"
+            android:indeterminate="false"
+            android:layout_marginTop="4dp"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"/>
+    </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/miniPlayPause"
+        android:src="@drawable/ic_play_arrow"
+        android:tint="#FFFFFF"
+        android:background="@android:color/transparent"
+        android:contentDescription="Play/Pause"
+        android:layout_width="48dp"
+        android:layout_height="48dp"/>
+</LinearLayout>

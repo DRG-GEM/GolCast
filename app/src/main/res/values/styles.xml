@@ -1,0 +1,8 @@
+<resources>
+    <!-- Tema de la app: Material3 sin ActionBar -->
+    <style name="Theme.App" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Colores opcionales -->
+        <item name="colorPrimary">#F97316</item>
+        <item name="android:statusBarColor">?attr/colorSurface</item>
+    </style>
+</resources>

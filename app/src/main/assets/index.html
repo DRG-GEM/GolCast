@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="es" class="bg-gray-900">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>GolCast</title>
+
+    <!-- Tipografía -->
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+
+    <style>
+        :root{
+          --bg1:#0b1224; --bg2:#0f172a; --panel:#111827; --card:#141c2c;
+          --ink:#ffffff; --muted:#a7b0bf; --line:#243041;
+          --pri:#f97316; --pri2:#ea580c;
+        }
+        *{box-sizing:border-box}
+        html,body{margin:0;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:var(--ink);font-family:Inter,system-ui,Segoe UI,Roboto,Arial}
+        a{color:inherit}
+
+        /* Header */
+        header{position:sticky;top:0;z-index:10;background:rgba(17,24,39,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:14px 16px;display:flex;align-items:center;gap:10px}
+        .brand{font-weight:800;letter-spacing:.3px;color:var(--pri)}
+
+        /* Layout */
+        main{max-width:1024px;margin:0 auto;padding:16px}
+        .muted{color:var(--muted)}
+        .section-title{display:flex;align-items:center;justify-content:space-between;margin:10px 0 12px}
+
+        /* Grid de podcasts */
+        .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+        @media(min-width:640px){.grid{grid-template-columns:repeat(3,1fr)}}
+        @media(min-width:960px){.grid{grid-template-columns:repeat(5,1fr)}}
+        .card{background:linear-gradient(180deg,#0d1428,#0b1224);border:1px solid #22304a;border-radius:16px;overflow:hidden;cursor:pointer;transition:transform .18s ease, box-shadow .18s ease}
+        .card:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(0,0,0,.35)}
+        .art{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
+        .card .title{padding:10px 10px 12px;font-weight:700;font-size:.95rem}
+
+        /* Lista episodios */
+        .list{display:flex;flex-direction:column;gap:10px}
+        .episode{background:linear-gradient(180deg,#0b1222,#0a101e);border:1px solid #1f2a42;border-radius:14px;padding:12px}
+        .row{display:flex;gap:10px;align-items:center;justify-content:space-between}
+        .btn{background:#1f2937;border:1px solid #2f3b52;color:#fff;padding:8px 12px;border-radius:10px;cursor:pointer}
+        .btn:active{transform:scale(.98)}
+        .back{display:inline-flex;align-items:center;gap:8px;color:#ffb98a;text-decoration:none;margin:4px 0 14px}
+
+        /* Loader / error */
+        .loader{display:none;justify-content:center;align-items:center;gap:10px;color:#ff9a60;padding:14px}
+        .error{display:none;background:#3b0b0b;border:1px solid #5d1919;color:#ffd5d5;border-radius:10px;padding:10px;margin-top:12px}
+
+        /* Mini-player */
+        .player{position:fixed;left:0;right:0;bottom:0;background:rgba(17,24,39,.95);backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:10px 12px;display:none}
+        .line1{display:flex;align-items:center;gap:10px;justify-content:space-between}
+        .thumb{width:42px;height:42px;border-radius:10px;object-fit:cover;border:1px solid #2a3752}
+        .ep-meta{min-width:0}
+        .ep-title{font-size:.9rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .ep-pod{font-size:.78rem;color:#aab3c2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .pill{background:#263247;border:1px solid #334261;color:#fff;padding:6px 10px;border-radius:999px}
+        .spacer{height:74px}
+
+        /* Full player */
+        .fullplayer{position:fixed;inset:0;background:linear-gradient(180deg,#0a1020,#0f172a);z-index:50;display:none}
+        .fp-wrap{max-width:720px;margin:0 auto;height:100%;display:flex;flex-direction:column;padding:18px}
+        .fp-top{display:flex;align-items:center;justify-content:space-between;color:#ffb98a}
+        .fp-art{width:100%;max-width:540px;aspect-ratio:1/1;border-radius:22px;object-fit:cover;border:1px solid #2a3752;align-self:center;margin:18px 0}
+        .fp-title{font-weight:800;font-size:1.15rem;margin-top:6px;text-align:center}
+        .fp-pod{color:#aab3c2;text-align:center;margin-top:4px}
+        .fp-ctrls{display:flex;gap:18px;justify-content:center;margin-top:18px}
+        .fp-btn{background:#263247;border:1px solid #334261;color:#fff;padding:12px 16px;border-radius:999px;min-width:72px;font-size:1.1rem}
+    </style>
+</head>
+<body>
+
+<header><span>🎙</span><div class="brand">GolCast</div></header>
+
+<main>
+    <!-- Vista podcasts -->
+    <section id="view-podcasts">
+        <h2 style="margin:8px 0 12px">Mis podcasts</h2>
+        <div id="podcasts-grid" class="grid"></div>
+    </section>
+
+    <!-- Vista episodios -->
+    <section id="view-episodes" style="display:none">
+        <a href="#" id="btn-back" class="back">← Volver</a>
+        <div id="podcast-head" style="display:flex;align-items:center;gap:12px;margin-bottom:8px"></div>
+        <div class="section-title">
+            <h3>Episodios</h3>
+            <div class="muted"><span id="count">0</span> ep.</div>
+        </div>
+        <div id="episodes" class="list"></div>
+        <div id="loader" class="loader"><span>⏳</span><span>Cargando episodios…</span></div>
+        <div id="err" class="error"></div>
+    </section>
+
+    <div class="spacer"></div>
+</main>
+
+<!-- Mini-player -->
+<div id="player" class="player">
+    <div class="line1">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0">
+            <img id="p-art" class="thumb" src="" alt="">
+            <div class="ep-meta">
+                <div id="p-title" class="ep-title">—</div>
+                <div id="p-pod" class="ep-pod">—</div>
+            </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+            <button id="btn-rew" class="pill">⏪ 15s</button>
+            <button id="btn-toggle" class="pill">▶</button>
+            <button id="btn-fwd" class="pill">⏩ 30s</button>
+        </div>
+    </div>
+</div>
+
+<!-- Full player -->
+<div id="fullplayer" class="fullplayer">
+    <div class="fp-wrap">
+        <div class="fp-top">
+            <button id="fp-close" class="fp-btn">← Atrás</button>
+            <div style="font-weight:800;color:#ff9a60">GolCast</div>
+            <div style="width:72px"></div>
+        </div>
+        <img id="fp-art" class="fp-art" src="" alt="">
+        <div id="fp-title" class="fp-title">—</div>
+        <div id="fp-pod" class="fp-pod">—</div>
+        <div class="fp-ctrls">
+            <button id="fp-rew" class="fp-btn">⏪ 15s</button>
+            <button id="fp-toggle" class="fp-btn">⏯</button>
+            <button id="fp-fwd" class="fp-btn">⏩ 30s</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* ----------- Datos: tus podcasts ----------- */
+    const PODCASTS = [
+      { name: "A dos bandas", rss: "https://www.omnycontent.com/d/playlist/7e594858-42ba-4ecb-86d8-ad1a002e5281/1d39fbf3-b41a-4c54-88ec-adcd0136c774/df3205fa-ee92-4df4-9308-adcd0136c791/podcast.rss", art: "https://www.omnycontent.com/d/playlist/7e594858-42ba-4ecb-86d8-ad1a002e5281/1d39fbf3-b41a-4c54-88ec-adcd0136c774/df3205fa-ee92-4df4-9308-adcd0136c791/image.jpg?t=1729520499&size=Large" },
+      { name: "Brazalete Negro", rss: "https://www.primaverasound.com/radio/shows/brazalete-negro?action=rss", art: "https://assets-img.primaverasound.com/1400x1400/2022/ps-single/images/noticias/2022/psb/facebook/brazaletenegro_ed_2400x1256_20220516085356.jpg" },
+      { name: "El Larguero", rss: "https://fapi-top.prisasd.com/podcast/playser/el_larguero/itunestfp/podcast.xml", art: "https://sdmedia.playser.cadenaser.com/playser/image/20243/21/1711022132571_246.jpeg" },
+      { name: "El Morning de Axel y Rulo", rss: "https://www.ivoox.com/feed_fg_f1305937_filtro_1.xml", art: "https://static-1.ivoox.com/canales/8/a/b/1/8ab19414779a2ef30569006334fb11b4_XXL.jpg" },
+      { name: "El Partidazo de COPE", rss: "https://www.cope.es/api/es/programas/el-partidazo-de-cope/audios/rss.xml", art: "https://imagenes.cope.es/uploads/2024/07/03/original_668565c4a89c2.jpeg" },
+      { name: "La Libreta de Van Gaal", rss: "https://feeds.megaphone.fm/LALIBRETA2492905101", art: "https://megaphone.imgix.net/podcasts/128c35b8-42b3-11ef-9652-43c1220d92c4/image/55fac97bcbc48537a86ffd8390c3772f.jpeg?ixlib=rails-4.3.1&max-w=3000&max-h=3000&fit=crop&auto=format,compress" },
+      { name: "La Pizarra de Quintana", rss: "https://www.omnycontent.com/d/playlist/4ac2c3a8-bb0c-499b-bf22-ac8400df1983/23858072-d78f-4b2c-870e-ad95016caf18/272fdbf7-9428-4781-92e9-ad95016eb929/podcast.rss", art: "https://www.omnycontent.com/d/playlist/4ac2c3a8-bb0c-499b-bf22-ac8400df1983/23858072-d78f-4b2c-870e-ad95016caf18/272fdbf7-9428-4781-92e9-ad95016eb929/image.jpg?t=1659636005&size=Large" },
+      { name: "La Tribu con Raúl Varela", rss: "https://www.omnycontent.com/d/playlist/4ac2c3a8-bb0c-499b-bf22-ac8400df1983/7345e2c8-3edf-4530-b882-ac8700b152e1/a6c99e71-a9ce-48d3-97d9-acaa0101581c/podcast.rss", art: "https://www.omnycontent.com/d/playlist/4ac2c3a8-bb0c-499b-bf22-ac8400df1983/7345e2c8-3edf-4530-b882-ac8700b152e1/a6c99e71-a9ce-48d3-97d9-acaa0101581c/image.jpg?t=1610120517&size=Large" },
+      { name: "Offsiders", rss: "https://feeds.megaphone.fm/HOT2717170364", art: "https://megaphone.imgix.net/podcasts/6782cc76-780b-11ee-9313-9fce8c598dee/image/355dc2fb431dec68d91bae797c9410e1.png?ixlib=rails-4.3.1&max-w=3000&max-h=3000&fit=crop&auto=format,compress" },
+      { name: "Tertulia Blanquinegra - Efesista APP", rss: "https://www.ivoox.com/feed_fg_f1156320_filtro_1.xml", art: "https://static-2.ivoox.com/canales/7/3/5/9/7051641909537_XXL.jpg" },
+      { name: "Tiempo de Juego", rss: "https://www.cope.es/api/es/programas/tiempo-de-juego/audios/rss.xml", art: "https://imagenes.cope.es/uploads/2025/01/20/original_678e8defc69bc.jpeg" },
+      { name: "¡El Chiringuito de Jugones!", rss: "https://www.ivoox.com/feed_fg_f11226820_filtro_1.xml", art: "https://static-2.ivoox.com/canales/1/1/2/7/3351617207211_XXL.jpg" }
+    ];
+
+    /* ----------- Elementos ----------- */
+    const elGrid = document.getElementById('podcasts-grid');
+    const vPods  = document.getElementById('view-podcasts');
+    const vEps   = document.getElementById('view-episodes');
+    const elHead = document.getElementById('podcast-head');
+    const elCount= document.getElementById('count');
+    const elList = document.getElementById('episodes');
+    const elLoader=document.getElementById('loader');
+    const elErr  = document.getElementById('err');
+    const btnBack= document.getElementById('btn-back');
+
+    const player = document.getElementById('player');
+    const pArt   = document.getElementById('p-art');
+    const pTitle = document.getElementById('p-title');
+    const pPod   = document.getElementById('p-pod');
+    const btnRew = document.getElementById('btn-rew');
+    const btnTgl = document.getElementById('btn-toggle');
+    const btnFwd = document.getElementById('btn-fwd');
+
+    /* Full player */
+    const full = document.getElementById('fullplayer');
+    const fpClose = document.getElementById('fp-close');
+    const fpArt   = document.getElementById('fp-art');
+    const fpTitle = document.getElementById('fp-title');
+    const fpPod   = document.getElementById('fp-pod');
+    const fpRew   = document.getElementById('fp-rew');
+    const fpTgl   = document.getElementById('fp-toggle');
+    const fpFwd   = document.getElementById('fp-fwd');
+
+    /* ----------- Estado ----------- */
+    let currentPodcast = null;
+    let currentEpisode = null;
+    let isPlaying = false;
+
+    /* ----------- Render podcasts ----------- */
+    function renderPodcasts(){
+      elGrid.innerHTML = PODCASTS.map(p => `
+        <div class="card" data-rss="${p.rss}">
+          <img class="art" src="${p.art}" alt="${p.name}" onerror="this.src='data:image/svg+xml;utf8,${encodeURIComponent(placeholder())}'"/>
+          <div class="title">${p.name}</div>
+        </div>
+      `).join('');
+      Array.from(elGrid.querySelectorAll('.card')).forEach(card=>{
+        card.addEventListener('click', ()=>{
+          const rss = card.getAttribute('data-rss');
+          const pod = PODCASTS.find(x=>x.rss===rss);
+          if (pod) openPodcast(pod);
+        });
+      });
+    }
+    function placeholder(){
+      return `<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><rect width='100%' height='100%' fill='%231f2937'/><text x='50%' y='50%' fill='white' font-family='Arial' font-size='22' text-anchor='middle'>Podcast</text></svg>`;
+    }
+
+    /* ----------- Abrir podcast y cargar feed ----------- */
+    async function openPodcast(pod){
+      currentPodcast = pod;
+      vPods.style.display='none';
+      vEps.style.display='block';
+      elErr.style.display='none';
+      elLoader.style.display='flex';
+      elList.innerHTML = '';
+
+      elHead.innerHTML = `
+        <img src="${pod.art}" alt="" style="width:72px;height:72px;border-radius:14px;border:1px solid #2a3752;object-fit:cover"/>
+        <div>
+          <div style="font-weight:800">${pod.name}</div>
+          <div class="muted" style="max-width:70vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${pod.rss}</div>
+        </div>
+      `;
+
+      try {
+        const episodes = await fetchEpisodes(pod.rss);
+        elLoader.style.display='none';
+        elCount.textContent = episodes.length;
+        if (!episodes.length){
+          elList.innerHTML = `<div class="muted">No se encontraron episodios.</div>`;
+          return;
+        }
+        elList.innerHTML = episodes.map(ep => `
+          <div class="episode">
+            <div class="row">
+              <div style="min-width:0">
+                <div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ep.title}</div>
+                <div class="muted">${ep.dateText}</div>
+              </div>
+              <button class="btn play" data-url="${encodeURIComponent(ep.audio)}" data-title="${encodeURIComponent(ep.title)}">▶ Reproducir</button>
+            </div>
+          </div>
+        `).join('');
+        Array.from(elList.querySelectorAll('.play')).forEach(btn=>{
+          btn.addEventListener('click', ()=>{
+            const meta = {
+              url: decodeURIComponent(btn.getAttribute('data-url')||''),
+              title: decodeURIComponent(btn.getAttribute('data-title')||''),
+              podcast: pod.name,
+              art: pod.art
+            };
+            startPlayback(meta);
+          });
+        });
+      } catch(e){
+        elLoader.style.display='none';
+        elErr.style.display='block';
+        elErr.textContent = 'No se pudo cargar el feed RSS de este podcast.';
+      }
+    }
+
+    /* ----------- Parsear RSS ----------- */
+    async function fetchEpisodes(rssUrl){
+      const res = await fetch(rssUrl);
+      const txt = await res.text();
+      const xml = new DOMParser().parseFromString(txt, "application/xml");
+
+      const items = Array.from(xml.querySelectorAll('channel > item')).map(it=>{
+        const title = (it.querySelector('title')?.textContent || '').trim() || 'Sin título';
+        const pub   = it.querySelector('pubDate')?.textContent || '';
+        const audio = it.querySelector('enclosure')?.getAttribute('url') ||
+                      it.querySelector('link')?.textContent || '';
+        const date  = pub ? new Date(pub) : null;
+        return {
+          title, audio,
+          date,
+          dateText: date ? date.toLocaleDateString() : ''
+        };
+      }).filter(ep => !!ep.audio);
+
+      items.sort((a,b)=> (b.date?.getTime()||0) - (a.date?.getTime()||0));
+      return items;
+    }
+
+    /* ----------- Reproducción ----------- */
+    function startPlayback(meta){
+      currentEpisode = meta;
+
+      // UI mini-player
+      pArt.src = meta.art || '';
+      pTitle.textContent = meta.title || 'Reproduciendo';
+      pPod.textContent   = meta.podcast || 'GolCast';
+      player.style.display = 'block';
+
+      // Mandar a nativo (Android Bridge) o fallback <audio>
+      if (window.Android && typeof Android.play === 'function'){
+        Android.play(meta.title||'', meta.podcast||'', meta.art||'', meta.url);
+      } else {
+        if (!window._audio) window._audio = new Audio();
+        window._audio.src = meta.url;
+        window._audio.play().catch(()=>{});
+      }
+      isPlaying = true;
+      btnTgl.textContent = "⏸";
+    }
+
+    /* Controles mini-player */
+    btnRew.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      if (window.Android && Android.rewind15) Android.rewind15();
+      else if (window._audio) window._audio.currentTime = Math.max(0, window._audio.currentTime - 15);
+    });
+    btnFwd.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      if (window.Android && Android.forward30) Android.forward30();
+      else if (window._audio) window._audio.currentTime = Math.min(window._audio.duration||1, window._audio.currentTime + 30);
+    });
+    btnTgl.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      if (window.Android && Android.pause && Android.resume){
+        if (isPlaying) Android.pause(); else Android.resume();
+      } else if (window._audio) {
+        if (window._audio.paused) window._audio.play(); else window._audio.pause();
+      }
+      isPlaying = !isPlaying;
+      btnTgl.textContent = isPlaying ? "⏸" : "▶";
+    });
+
+    /* Abrir full player al tocar el mini (pero no los botones) */
+    player.addEventListener('click', (e)=>{
+      const t = e.target;
+      if (t && t.closest && t.closest('button')) return; // si pulsó un botón, no abrir
+      openFull();
+    });
+    function openFull(){
+      if (!currentEpisode) return;
+      full.style.display = 'block';
+      fpArt.src = pArt.src;
+      fpTitle.textContent = pTitle.textContent;
+      fpPod.textContent   = pPod.textContent;
+      fpTgl.textContent   = isPlaying ? "⏸" : "▶";
+    }
+    fpClose.addEventListener('click', ()=>{ full.style.display='none'; });
+    fpRew.addEventListener('click', ()=> btnRew.click());
+    fpFwd.addEventListener('click', ()=> btnFwd.click());
+    fpTgl.addEventListener('click', ()=>{
+      btnTgl.click();
+      fpTgl.textContent = isPlaying ? "⏸" : "▶";
+    });
+
+    /* Navegación */
+    btnBack.addEventListener('click', (e)=>{
+      e.preventDefault();
+      vEps.style.display='none';
+      vPods.style.display='block';
+    });
+
+    /* Init */
+    renderPodcasts();
+</script>
+</body>
+</html>
