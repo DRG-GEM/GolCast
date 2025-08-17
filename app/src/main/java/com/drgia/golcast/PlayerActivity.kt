@@ -1,101 +1,78 @@
-package com.drgia.golcast
+package com.drgia.golcast.ui
 
 import android.content.Intent
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.SeekBar
 import android.widget.TextView
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
+import com.drgia.golcast.PlayerService
+import com.drgia.golcast.PlayerViewModel
+import com.drgia.golcast.R
+import java.util.concurrent.TimeUnit
 
 class PlayerActivity : AppCompatActivity() {
 
-    private lateinit var playPauseButton: ImageButton
-    private lateinit var rewindButton: ImageButton
-    private lateinit var forwardButton: ImageButton
-    private lateinit var closeButton: ImageButton
-    private lateinit var seekBar: SeekBar
-    private lateinit var titleText: TextView
-    private lateinit var descText: TextView
-    private lateinit var coverImage: ImageView
-
-    private val ui = Handler(Looper.getMainLooper())
+    private val playerViewModel: PlayerViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_player)
 
-        playPauseButton = findViewById(R.id.btnPlayPause)
-        rewindButton = findViewById(R.id.btnRewind)
-        forwardButton = findViewById(R.id.btnForward)
-        closeButton = findViewById(R.id.btnClose)
-        seekBar = findViewById(R.id.seekBar)
-        titleText = findViewById(R.id.txtTitle)
-        descText = findViewById(R.id.txtDesc)
-        coverImage = findViewById(R.id.imgCover)
+        val artworkImageView: ImageView = findViewById(R.id.artworkImageView)
+        val episodeTitleTextView: TextView = findViewById(R.id.episodeTitleTextView)
+        val podcastTitleTextView: TextView = findViewById(R.id.podcastTitleTextView)
+        val seekBar: SeekBar = findViewById(R.id.seekBar)
+        val currentTimeTextView: TextView = findViewById(R.id.currentTimeTextView)
+        val durationTextView: TextView = findViewById(R.id.durationTextView)
+        val rewindButton: ImageButton = findViewById(R.id.rewindButton)
+        val playPauseButton: ImageButton = findViewById(R.id.playPauseButton)
+        val forwardButton: ImageButton = findViewById(R.id.forwardButton)
 
-        val episodeTitle = intent.getStringExtra("title") ?: PlaybackStateHolder.lastTitle ?: "Reproduciendo"
-        val episodeDesc = intent.getStringExtra("description") ?: PlaybackStateHolder.lastDescription ?: ""
-        val episodeCover = intent.getStringExtra("coverUrl") ?: PlaybackStateHolder.lastArtUrl
+        playerViewModel.playerState.observe(this) { state ->
+            if (state.currentEpisode == null || state.currentPodcast == null) {
+                // Si no hay nada reproduciendo, cerramos la actividad
+                finish()
+                return@observe
+            }
 
-        titleText.text = episodeTitle
-        descText.text = episodeDesc
-        Glide.with(this)
-            .load(episodeCover)
-            .placeholder(R.drawable.ic_music_note)
-            .into(coverImage)
+            episodeTitleTextView.text = state.currentEpisode.title
+            podcastTitleTextView.text = state.currentPodcast.name
+            Glide.with(this).load(state.currentPodcast.artworkUrl).into(artworkImageView)
+
+            playPauseButton.setImageResource(if (state.isPlaying) R.drawable.ic_pause else R.drawable.ic_play_arrow)
+
+            seekBar.max = state.durationMs.toInt()
+            seekBar.progress = state.positionMs.toInt()
+            durationTextView.text = formatTime(state.durationMs)
+            currentTimeTextView.text = formatTime(state.positionMs)
+        }
 
         playPauseButton.setOnClickListener {
-            val act = Intent(this, PlayerService::class.java).apply {
-                action = if (PlaybackStateHolder.isPlaying) PlayerService.ACTION_PAUSE else PlayerService.ACTION_RESUME
+            val intent = Intent(this, PlayerService::class.java).apply {
+                action = if (playerViewModel.playerState.value?.isPlaying == true) PlayerService.ACTION_PAUSE else PlayerService.ACTION_RESUME
             }
-            startService(act)
+            startService(intent)
         }
+
         rewindButton.setOnClickListener {
-            startService(Intent(this, PlayerService::class.java).setAction(PlayerService.ACTION_REWIND_15))
+            val intent = Intent(this, PlayerService::class.java).setAction(PlayerService.ACTION_REWIND)
+            startService(intent)
         }
+
         forwardButton.setOnClickListener {
-            startService(Intent(this, PlayerService::class.java).setAction(PlayerService.ACTION_FORWARD_30))
+            val intent = Intent(this, PlayerService::class.java).setAction(PlayerService.ACTION_FORWARD)
+            startService(intent)
         }
-        closeButton.setOnClickListener {
-            startService(Intent(this, PlayerService::class.java).setAction(PlayerService.ACTION_STOP))
-            finish()
-        }
-
-        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (fromUser) {
-                    startService(Intent(this@PlayerActivity, PlayerService::class.java).apply {
-                        action = PlayerService.ACTION_SEEK_TO
-                        putExtra("pos", progress.toLong())
-                    })
-                }
-            }
-            override fun onStartTrackingTouch(sb: SeekBar?) {}
-            override fun onStopTrackingTouch(sb: SeekBar?) {}
-        })
     }
 
-    override fun onResume() {
-        super.onResume()
-        ui.post(updateUiTick)
-    }
-
-    override fun onPause() {
-        super.onPause()
-        ui.removeCallbacks(updateUiTick)
-    }
-
-    private val updateUiTick = object : Runnable {
-        override fun run() {
-            val playing = PlaybackStateHolder.isPlaying
-            playPauseButton.setImageResource(if (playing) R.drawable.ic_pause else R.drawable.ic_play_arrow)
-            seekBar.max = PlaybackStateHolder.duration.toInt().coerceAtLeast(0)
-            seekBar.progress = PlaybackStateHolder.position.toInt().coerceAtLeast(0)
-            ui.postDelayed(this, 500L)
-        }
+    private fun formatTime(millis: Long): String {
+        return String.format("%02d:%02d",
+            TimeUnit.MILLISECONDS.toMinutes(millis),
+            TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))
+        )
     }
 }

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:card_view="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="72dp"
+    android:layout_margin="12dp"
+    card_view:cardCornerRadius="12dp"
+    card_view:cardElevation="6dp"
+    android:foreground="?attr/selectableItemBackground">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingStart="12dp"
+        android:paddingEnd="8dp"
+        android:background="#1C1C1F">
+
+        <ImageView
+            android:id="@+id/miniCover"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_centerVertical="true"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_music_note" />
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_toEndOf="@id/miniCover"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="12dp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_toStartOf="@+id/forward30">
+
+            <TextView
+                android:id="@+id/miniTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Reproduciendo"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/miniSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="GolCast"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textColor="#B0B0B0"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/rewind15"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_centerVertical="true"
+            android:layout_alignParentEnd="true"
+            android:layout_marginEnd="88dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_replay_15" />
+
+        <ImageButton
+            android:id="@+id/playPause"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_toEndOf="@id/rewind15"
+            android:layout_centerVertical="true"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_play_arrow" />
+
+        <ImageButton
+            android:id="@+id/forward30"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_toEndOf="@id/playPause"
+            android:layout_centerVertical="true"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_forward_30" />
+    </RelativeLayout>
+</androidx.cardview.widget.CardView>

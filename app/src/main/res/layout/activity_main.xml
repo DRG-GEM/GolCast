@@ -1,24 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="24dp"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#101015">
+    android:background="#0F1115">
 
-    <Button
-        android:id="@+id/btnPlayTest"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/podcastsRecycler"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:padding="12dp"
+        android:layout_above="@+id/miniPlayer"/>
+
+    <include
+        android:id="@+id/miniPlayer"
+        layout="@layout/include_mini_player"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="▶ Reproducir episodio de prueba"
-        android:padding="16dp"/>
-
-    <Button
-        android:id="@+id/btnOpenNowPlaying"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="🖼 Abrir reproductor completo"
-        android:layout_marginTop="12dp"
-        android:padding="16dp"/>
-</LinearLayout>
+        android:layout_alignParentBottom="true" />
+</RelativeLayout>

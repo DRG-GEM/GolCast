@@ -1,39 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest package="com.drgia.golcast"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.drgia.golcast">
 
-    <!-- Permisos -->
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
-    <!-- Android 13+: permiso runtime para notificaciones -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
-        android:label="GolCast"
         android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
-
-        <activity
-            android:name=".PlayerActivity"
-            android:exported="false"
-            android:launchMode="singleTop"
-            android:screenOrientation="portrait" />
+        android:supportsRtl="true"
+        android:theme="@style/Theme.GolCast4">
 
         <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ui.PlayerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GolCast4.NoActionBar" />
+
+        <activity
+            android:name=".ui.EpisodesActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GolCast4.NoActionBar" />
 
         <service
             android:name=".PlayerService"
             android:exported="false"
-            android:foregroundServiceType="mediaPlayback"/>
-    </application>
-</manifest>
+            android:foregroundServiceType="mediaPlayback" />
+
+    </application> </manifest>

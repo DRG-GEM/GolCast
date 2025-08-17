@@ -1,106 +1,71 @@
-package com.drgia.golcast
+package com.drgia.golcast.ui
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.ViewGroup
-import android.widget.Toast
+import android.view.View
+import android.widget.ImageView
+import android.widget.ProgressBar
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.drgia.golcast.data.RssParser
-import com.drgia.golcast.model.Episode
-import com.drgia.golcast.ui.MiniPlayerController
-import java.text.SimpleDateFormat
-import java.util.*
-import java.util.concurrent.Executors
+import com.bumptech.glide.Glide
+import com.drgia.golcast.PlayerActivity // <-- Importación añadida
+import com.drgia.golcast.PlayerService
+import com.drgia.golcast.R
+import com.drgia.golcast.data.Podcast
+import com.drgia.golcast.data.PodcastRepository
+import com.google.android.material.appbar.CollapsingToolbarLayout
+import kotlinx.coroutines.launch
 
 class EpisodesActivity : AppCompatActivity() {
-
-    private val io = Executors.newSingleThreadExecutor()
-    private lateinit var mini: MiniPlayerController
-
-    private lateinit var rssUrl: String
-    private lateinit var podcastName: String
-    private var podcastArt: String? = null
+    private val repository = PodcastRepository()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_episodes)
 
-        rssUrl = intent.getStringExtra("rss") ?: ""
-        podcastName = intent.getStringExtra("name") ?: "Podcast"
-        podcastArt = intent.getStringExtra("art")
+        val podcast = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getSerializableExtra("PODCAST_EXTRA", Podcast::class.java)
+        } else {
+            intent.getSerializableExtra("PODCAST_EXTRA") as? Podcast
+        }
 
-        findViewById<android.widget.TextView>(R.id.titleToolbar).text = podcastName
-        com.bumptech.glide.Glide.with(this).load(podcastArt).into(findViewById(R.id.headerArt))
+        if (podcast == null) {
+            finish()
+            return
+        }
 
-        val rv = findViewById<RecyclerView>(R.id.recyclerEpisodes)
-        rv.layoutManager = LinearLayoutManager(this)
+        val toolbar: Toolbar = findViewById(R.id.toolbar)
+        setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        toolbar.setNavigationOnClickListener { finish() }
 
-        mini = MiniPlayerController(findViewById(R.id.miniPlayerRoot), this)
+        val collapsingToolbar: CollapsingToolbarLayout = findViewById(R.id.collapsingToolbar)
+        collapsingToolbar.title = podcast.name
 
-        io.execute {
-            try {
-                val episodes = RssParser.loadEpisodes(rssUrl)
-                runOnUiThread {
-                    rv.adapter = EpisodesAdapter(episodes) { ep ->
-                        startService(
-                            Intent(this, PlayerService::class.java).apply {
-                                action = PlayerService.ACTION_PLAY
-                                putExtra(PlayerService.EXTRA_URL, ep.audioUrl)
-                                putExtra(PlayerService.EXTRA_TITLE, ep.title)
-                                putExtra(PlayerService.EXTRA_PODCAST, podcastName)
-                                putExtra(PlayerService.EXTRA_ART, ep.artworkUrl ?: podcastArt)
-                            }
-                        )
-                        startActivity(Intent(this, PlayerActivity::class.java))
-                    }
-                    findViewById<android.view.View>(R.id.loading).visibility = android.view.View.GONE
-                    findViewById<android.view.View>(R.id.content).visibility = android.view.View.VISIBLE
+        val cover: ImageView = findViewById(R.id.podcastCover)
+        Glide.with(this).load(podcast.artworkUrl).into(cover)
+
+        val recyclerView: RecyclerView = findViewById(R.id.episodesRecycler)
+        val progressBar: ProgressBar = findViewById(R.id.progressBar)
+        recyclerView.layoutManager = LinearLayoutManager(this)
+
+        progressBar.visibility = View.VISIBLE
+        lifecycleScope.launch {
+            val episodes = repository.fetchEpisodes(podcast.rssUrl)
+            progressBar.visibility = View.GONE
+            recyclerView.adapter = EpisodesAdapter(episodes) { episode ->
+                val serviceIntent = Intent(this@EpisodesActivity, PlayerService::class.java).apply {
+                    action = PlayerService.ACTION_PLAY
+                    putExtra(PlayerService.EXTRA_EPISODE, episode)
+                    putExtra(PlayerService.EXTRA_PODCAST, podcast)
                 }
-            } catch (e: Exception) {
-                runOnUiThread {
-                    Toast.makeText(this, "Error cargando RSS: ${e.message}", Toast.LENGTH_LONG).show()
-                    finish()
-                }
+                startService(serviceIntent)
+                startActivity(Intent(this@EpisodesActivity, PlayerActivity::class.java))
             }
         }
-    }
-
-    override fun onStart() { super.onStart(); mini.onStart() }
-    override fun onStop() { super.onStop(); mini.onStop() }
-}
-
-private class EpisodesAdapter(
-    private val items: List<Episode>,
-    private val onClick: (Episode) -> Unit
-) : RecyclerView.Adapter<EpisodeVH>() {
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): EpisodeVH {
-        val v = LayoutInflater.from(parent.context).inflate(R.layout.item_episode, parent, false)
-        return EpisodeVH(v)
-    }
-
-    override fun onBindViewHolder(holder: EpisodeVH, position: Int) {
-        holder.bind(items[position], onClick)
-    }
-
-    override fun getItemCount() = items.size
-}
-
-private class EpisodeVH(v: android.view.View) : RecyclerView.ViewHolder(v) {
-    private val title = v.findViewById<android.widget.TextView>(R.id.epTitle)
-    private val date = v.findViewById<android.widget.TextView>(R.id.epDate)
-    private val art = v.findViewById<android.widget.ImageView>(R.id.epArt)
-
-    fun bind(ep: Episode, onClick: (Episode) -> Unit) {
-        title.text = ep.title
-        if (ep.pubMillis > 0) {
-            val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-            date.text = sdf.format(Date(ep.pubMillis))
-        } else date.text = ""
-        com.bumptech.glide.Glide.with(itemView).load(ep.artworkUrl).into(art)
-        itemView.setOnClickListener { onClick(ep) }
     }
 }
